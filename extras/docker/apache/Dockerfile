@@ -47,7 +47,7 @@ RUN chmod 0644 /etc/cron.d/wger \
 # Set up the application
 USER wger
 ARG GIT_BRANCH=master
-RUN git clone -b ${GIT_BRANCH} https://github.com/wger-project/wger.git /home/wger/src
+RUN git clone -b ${GIT_BRANCH} https://github.com/speshak/wger.git /home/wger/src
 
 WORKDIR /home/wger/src
 RUN virtualenv --python python3 /home/wger/venv
