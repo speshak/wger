@@ -10,7 +10,7 @@
 
 FROM ubuntu:18.10
 
-LABEL maintainer="Roland Geider <roland@geider.net>"
+LABEL maintainer="Scott Peshak <scott@peshak.net>"
 
 # Install dependencies
 RUN apt-get update \

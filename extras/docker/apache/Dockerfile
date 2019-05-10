@@ -7,9 +7,9 @@
 #
 #
 
-FROM wger/base
+FROM speshak/wger-base
 
-LABEL maintainer="Roland Geider <roland@geider.net>"
+LABEL maintainer="Scott Peshak <scott@peshak.net>"
 EXPOSE 80
 
 # Set locale to UTF8, otherwise problems with the encoding can occur, e.g.
