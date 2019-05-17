@@ -25,6 +25,7 @@ RUN apt-get update \
   && apt-get install --no-install-recommends -y \
     apache2 \
     cron \
+    curl \
     libapache2-mod-wsgi-py3 \
   && rm -rf /var/lib/apt/lists/*
 
@@ -70,7 +71,7 @@ RUN chmod o+w -R ~/db/ \
     && mkdir -p ~/static/CACHE ~/media \
     && ln -s /home/wger/static/CACHE /home/wger/src/CACHE \
     && sed -i "/^MEDIA_ROOT/c\MEDIA_ROOT='\/home\/wger\/media'" settings.py \
-    && python manage.py download-exercise-images \
+    && curl https://mock-wger.peshak.net/exercise-images.tar.xz | tar -C ~/media -Jvxf - \
     && chmod -R o+w ~/media \
     && echo STATIC_ROOT=\'/home/wger/static\' >> settings.py \
     && python manage.py collectstatic --noinput
