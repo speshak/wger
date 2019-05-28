@@ -49,7 +49,7 @@ RUN chmod 0644 /etc/cron.d/wger \
 # Set up the application
 RUN ln -s /home/wger/static/CACHE /var/www
 USER wger
-ARG GIT_BRANCH=master
+ARG GIT_BRANCH=django-upgrade
 RUN git clone -b ${GIT_BRANCH} https://github.com/speshak/wger.git /home/wger/src
 
 WORKDIR /home/wger/src
