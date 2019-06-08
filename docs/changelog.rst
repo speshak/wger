@@ -1,6 +1,21 @@
 Changelog
 =========
 
+1.10
+----
+**2019-06-08**
+
+This is the first "speshak" release because the upstream project appears to have been abandoned.
+The 1.9 fetaures listed below are included, along with a number of un-merged PRs submitted to upstream.
+
+New Features:
+
+* Drop Python 2 support.
+* Django update to 1.11.
+* Update many dependencies to current versions.
+* Update Ubuntu version used in docker container.
+
+
 
 1.9 - IN DEVELOPMENT
 --------------------
