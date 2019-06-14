@@ -1,6 +1,20 @@
 Changelog
 =========
 
+1.11
+----
+**2019-06-13**
+
+Second "speshak" release.
+
+New features:
+
+* Updated tinymce theme for v5.
+* Added optional S3 static asset hosting.
+* Replaced django-mobile with django-user_agent (and some custom code)
+  This isn't as slick as django-mobile was, but it unblocks possible Django 2.x support.
+* Fixed a handful of hard coded static path references to use `static` taglib
+
 1.10
 ----
 **2019-06-08**
