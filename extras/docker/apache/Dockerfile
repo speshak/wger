@@ -80,10 +80,7 @@ RUN chmod o+w -R ~/db/ \
     && ln -s /home/wger/static/CACHE /home/wger/src/CACHE \
     && chmod g+w /home/wger/static/CACHE \
     && sed -i "/^MEDIA_ROOT/c\MEDIA_ROOT='\/home\/wger\/media'" settings.py \
-    && curl https://mock-wger.peshak.net/exercise-images.tar.xz | tar -C ~/media -Jvxf - \
-    && chmod -R g+w ~/media \
-    && echo STATIC_ROOT=\'/home/wger/static\' >> settings.py \
-    && python manage.py collectstatic --noinput
+    && echo STATIC_ROOT=\'/home/wger/static\' >> settings.py
 
 USER root
 
