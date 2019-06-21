@@ -1,6 +1,20 @@
 Changelog
 =========
 
+1.12
+----
+**2019-06-20**
+
+Third "speshak" release.
+
+New Features:
+
+* Work to slim docker image
+  * Download images at startup
+  * Uninstall dev packages
+* Work to ensure that mobile templates are used when appropriate
+
+
 1.11
 ----
 **2019-06-13**
