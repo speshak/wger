@@ -1,0 +1,212 @@
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create a CloudFront distribution for wger
+
+Parameters:
+  Alias:
+    Type: String
+    Default: ''
+    Description: Domain alias.
+  AcmCertificateArn:
+    Type: String
+    Default: ''
+    Description: The ARN of an AWS Certificate Manager (ACM) certificate.
+  OriginHost:
+    Type: String
+    Description: Hostname of the wger origin host
+  OriginHttpPort:
+    Type: Number
+    Default: 80
+    Description: HTTP port for wger origin
+  OriginHttpsPort:
+    Type: Number
+    Default: 443
+    Description: HTTPS port for wger origin
+
+Outputs:
+  CloudfrontEndpoint:
+    Value: !GetAtt [WebsiteCloudfront, DomainName]
+    Description: Endpoint for Cloudfront distribution
+  CloudfrontDistributionId:
+    Value: !Ref WebsiteCloudfront
+    Description: "ID of CloudFront distribution"
+  StaticBucketName:
+    Value: !Ref StaticBucket
+
+
+Conditions:
+  UseACMCertificate:
+    !Not [!Equals [!Ref AcmCertificateArn, '']]
+
+
+Resources:
+  WebsiteCloudfront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront Distribution pointing to on-prem site
+        Origins:
+          - DomainName: !Ref OriginHost
+            Id: OnPremOrigin
+            CustomOriginConfig:
+              HTTPPort: !Ref OriginHttpPort
+              HTTPSPort: !Ref OriginHttpsPort
+              OriginProtocolPolicy: https-only
+              OriginReadTimeout: 60
+              OriginSSLProtocols:
+                - TLSv1.2
+
+        Enabled: true
+        HttpVersion: 'http2'
+        Aliases:
+          - !Ref Alias
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+            - PUT
+            - PATCH
+            - POST
+            - DELETE
+          Compress: true
+          TargetOriginId: OnPremOrigin
+          ForwardedValues:
+            Headers:
+              # TODO: remove this after app can deal with CF headers (below)
+              - User-Agent
+              - CloudFront-Is-Desktop-Viewer
+              - CloudFront-Is-Mobile-Viewer
+              - CloudFront-Is-Tablet-Viewer
+            QueryString: true
+            Cookies:
+              Forward: all
+          ViewerProtocolPolicy:
+            !If [UseACMCertificate, 'redirect-to-https', 'allow-all']
+          DefaultTTL: 0
+          MinTTL: 0
+          MaxTTL: 2592000
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          MinimumProtocolVersion: TLSv1.2_2018
+          AcmCertificateArn:
+            !If [UseACMCertificate, !Ref AcmCertificateArn, !Ref 'AWS::NoValue']
+          CloudFrontDefaultCertificate:
+            !If [UseACMCertificate, !Ref 'AWS::NoValue', true]
+          SslSupportMethod:
+            !If [UseACMCertificate, sni-only, !Ref 'AWS::NoValue']
+
+
+  StaticAssetsCloudfront:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Comment: Cloudfront Distribution for static wger assets
+        Origins:
+          - DomainName: !GetAtt StaticBucket.DomainName
+            Id: S3Origin
+            S3OriginConfig:
+              OriginAccessIdentity: !Sub "origin-access-identity/cloudfront/${CloudFrontIdentity}"
+          - DomainName: !Ref OriginHost
+            Id: OnPremOrigin
+            CustomOriginConfig:
+              HTTPPort: !Ref OriginHttpPort
+              HTTPSPort: !Ref OriginHttpsPort
+              OriginProtocolPolicy: https-only
+        Enabled: true
+        HttpVersion: 'http2'
+        Aliases:
+          - !Sub "cdn-${Alias}"
+        DefaultCacheBehavior:
+          AllowedMethods:
+            - GET
+            - HEAD
+            - OPTIONS
+          Compress: true
+          TargetOriginId: S3Origin
+          ForwardedValues:
+            QueryString: false
+            Cookies:
+              Forward: none
+          ViewerProtocolPolicy:
+            !If [UseACMCertificate, 'redirect-to-https', 'allow-all']
+          DefaultTTL: 0
+          MinTTL: 0
+          MaxTTL: 2592000
+        PriceClass: PriceClass_100
+        ViewerCertificate:
+          MinimumProtocolVersion: TLSv1.2_2018
+          AcmCertificateArn:
+            !If [UseACMCertificate, !Ref AcmCertificateArn, !Ref 'AWS::NoValue']
+          CloudFrontDefaultCertificate:
+            !If [UseACMCertificate, !Ref 'AWS::NoValue', true]
+          SslSupportMethod:
+            !If [UseACMCertificate, sni-only, !Ref 'AWS::NoValue']
+
+
+  StaticBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      CorsConfiguration:
+        CorsRules:
+          -
+            AllowedMethods: [GET]
+            AllowedOrigins: ['*']
+            AllowedHeaders: ['*']
+            MaxAge: 1800
+
+  CloudFrontIdentity:
+    Type: AWS::CloudFront::CloudFrontOriginAccessIdentity
+    Properties:
+      CloudFrontOriginAccessIdentityConfig:
+        Comment: !Sub "${AWS::StackName} OAI"
+
+  StaticBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref StaticBucket
+      PolicyDocument:
+        Statement:
+          -
+            Principal:
+              CanonicalUser: !GetAtt CloudFrontIdentity.S3CanonicalUserId
+            Action:
+              - "s3:GetObject"
+            Effect: "Allow"
+            Resource:
+              Fn::Join:
+                - ""
+                -
+                  - "arn:aws:s3:::"
+                  -
+                    Ref: StaticBucket
+                  - "/*"
+
+
+  IamUser:
+    Type: AWS::IAM::User
+
+  IamPolicy:
+    Type: AWS::IAM::Policy
+    Properties:
+      Users:
+        - !Ref IamUser
+      PolicyName: !Sub ${AWS::StackName}-Publish
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - s3:ListBucket
+            Resource: !GetAtt StaticBucket.Arn
+          - Effect: Allow
+            Action:
+              - s3:PutObject
+              - s3:GetObjectAcl
+              - s3:GetObject
+              - s3:DeleteObject
+              - s3:PutObjectAcl
+            Resource: !Sub arn:aws:s3:::${StaticBucket}/*
+
+
+# vim: ft=yaml.cloudformation
